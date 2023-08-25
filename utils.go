@@ -3,12 +3,12 @@ package telemetry
 import (
 	"context"
 	"errors"
-	"github.com/rs/zerolog/log"
+	"runtime"
+	"strings"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"runtime"
-	"strings"
 )
 
 func getCPUUsage() float64 {
@@ -21,38 +21,42 @@ func getMemoryUsage() (uint64, uint64) {
 	return stat.Alloc, stat.Sys
 }
 
-func getPodInfo(clientSet *kubernetes.Clientset, serviceName string) (string, string, error) {
+func getPodInfo(clientSet *kubernetes.Clientset, serviceName string) (internalIP string, namespace string, err error) {
 	podClient := clientSet.CoreV1().Pods(metav1.NamespaceDefault)
 
-	podList, err := podClient.List(context.TODO(), metav1.ListOptions{})
+	var podList *v1.PodList
+	podList, err = podClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		log.Error().Err(err).Msg("Error listing pods")
+		return
 	}
 
 	var hubPod v1.Pod
 	for _, pod := range podList.Items {
 		if strings.HasPrefix(pod.Name, serviceName) {
-			log.Info().Interface("pod", pod).Msg("Hub Pod")
 			hubPod = pod
 		}
 	}
 
 	if hubPod.Name == "" {
-		return "", "", errors.New("failed to get k8s kubeshark-hub Pod - no Pod with prefix " + serviceName + " was found")
+		err = errors.New("failed to get k8s kubeshark-hub Pod - no Pod with prefix " + serviceName + " was found")
+		return
 	}
 
-	return hubPod.Status.PodIP, hubPod.ObjectMeta.Namespace, nil
+	internalIP = hubPod.Status.PodIP
+	namespace = hubPod.ObjectMeta.Namespace
+
+	return
 }
 
-func getClusterIP(clientSet *kubernetes.Clientset) (string, error) {
-	svcClient := clientSet.CoreV1().Services("default")
-
-	// todo: fetch it from svcClient.List and find by ClusterIP type rather than kubernetes name?
+func getClusterIP(clientSet *kubernetes.Clientset) (clusterIP string, err error) {
+	// TODO: fetch it from svcClient.List and find by ClusterIP type rather than kubernetes name?
 	serviceName := "kubernetes"
-	service, err := svcClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
+	var service *v1.Service
+	service, err = clientSet.CoreV1().Services("default").Get(context.TODO(), serviceName, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 
-	return service.Spec.ClusterIP, nil
+	clusterIP = service.Spec.ClusterIP
+	return
 }
