@@ -7,10 +7,24 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
 )
+
+var cloudApiURL = "https://api.kubeshark.co"
+
+const (
+	ENV_CLOUD_API_URL = "KUBESHARK_CLOUD_API_URL"
+)
+
+func init() {
+	envCloudApiURL := os.Getenv(ENV_CLOUD_API_URL)
+	if envCloudApiURL != "" {
+		cloudApiURL = envCloudApiURL
+	}
+}
 
 func Run(startTime time.Time, clientSet *kubernetes.Clientset, serviceName string) (stats *Stats, err error) {
 	now := time.Now()
@@ -47,8 +61,7 @@ func Run(startTime time.Time, clientSet *kubernetes.Clientset, serviceName strin
 }
 
 func emitMetrics(data *Stats, serviceName string) (err error) {
-	apiURL := "https://api.kubeshark.co"
-	URL := apiURL + "/telemetry/" + serviceName
+	endpointURL := fmt.Sprintf("%s/telemetry/%s", cloudApiURL, serviceName)
 
 	var payload []byte
 	payload, err = json.Marshal(data)
@@ -57,7 +70,7 @@ func emitMetrics(data *Stats, serviceName string) (err error) {
 	}
 
 	var req *http.Request
-	req, err = http.NewRequest("POST", URL, bytes.NewBuffer(payload))
+	req, err = http.NewRequest("POST", endpointURL, bytes.NewBuffer(payload))
 	if err != nil {
 		return
 	}
