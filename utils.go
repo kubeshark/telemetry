@@ -3,10 +3,11 @@ package telemetry
 import (
 	"context"
 	"errors"
+	"runtime"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"runtime"
 )
 
 func getCPUUsage() float64 {
@@ -28,22 +29,22 @@ func getPodInfo(clientSet *kubernetes.Clientset, serviceName string) (name strin
 		},
 	)
 	if err != nil {
-		return "", "", "", err
+		return
+	}
+
+	if len(podList.Items) < 1 {
+		err = errors.New("failed to get k8s Pod - no Pod with prefix " + serviceName + " was found")
+		return
 	}
 
 	var pod v1.Pod
 	pod = podList.Items[0]
 
-	if len(podList.Items) < 1 {
-		err = errors.New("failed to get k8s Pod - no Pod with prefix " + serviceName + " was found")
-		return "", "", "", err
-	}
-
 	name = pod.Name
 	internalIP = pod.Status.PodIP
 	namespace = pod.ObjectMeta.Namespace
 
-	return name, internalIP, namespace, nil
+	return
 }
 
 func getClusterIP(clientSet *kubernetes.Clientset) (clusterIP string, err error) {
@@ -52,9 +53,9 @@ func getClusterIP(clientSet *kubernetes.Clientset) (clusterIP string, err error)
 	var service *v1.Service
 	service, err = clientSet.CoreV1().Services("default").Get(context.TODO(), serviceName, metav1.GetOptions{})
 	if err != nil {
-		return "", err
+		return
 	}
 
 	clusterIP = service.Spec.ClusterIP
-	return clusterIP, nil
+	return
 }

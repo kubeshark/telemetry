@@ -57,7 +57,7 @@ func Run(startTime time.Time, clientSet *kubernetes.Clientset, serviceName strin
 	}
 
 	err = emitMetrics(stats, serviceName)
-	return stats, err
+	return
 }
 
 func emitMetrics(data *Stats, serviceName string) (err error) {
@@ -98,5 +98,5 @@ func emitMetrics(data *Stats, serviceName string) (err error) {
 		}
 	}
 
-	return nil
+	return
 }
