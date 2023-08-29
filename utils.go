@@ -3,12 +3,10 @@ package telemetry
 import (
 	"context"
 	"errors"
-	"runtime"
-	"strings"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"runtime"
 )
 
 func getCPUUsage() float64 {
@@ -21,31 +19,31 @@ func getMemoryUsage() (uint64, uint64) {
 	return stat.Alloc, stat.Sys
 }
 
-func getPodInfo(clientSet *kubernetes.Clientset, serviceName string) (internalIP string, namespace string, err error) {
-	podClient := clientSet.CoreV1().Pods(metav1.NamespaceDefault)
-
-	var podList *v1.PodList
-	podList, err = podClient.List(context.TODO(), metav1.ListOptions{})
+func getPodInfo(clientSet *kubernetes.Clientset, serviceName string) (name string, internalIP string, namespace string, err error) {
+	podList, err := clientSet.CoreV1().Pods(metav1.NamespaceDefault).List(
+		context.TODO(),
+		metav1.ListOptions{
+			Watch:         true,
+			LabelSelector: "app=" + serviceName,
+		},
+	)
 	if err != nil {
-		return
+		return "", "", "", err
 	}
 
-	var hubPod v1.Pod
-	for _, pod := range podList.Items {
-		if strings.HasPrefix(pod.Name, serviceName) {
-			hubPod = pod
-		}
+	var pod v1.Pod
+	pod = podList.Items[0]
+
+	if len(podList.Items) < 1 {
+		err = errors.New("failed to get k8s Pod - no Pod with prefix " + serviceName + " was found")
+		return "", "", "", err
 	}
 
-	if hubPod.Name == "" {
-		err = errors.New("failed to get k8s kubeshark-hub Pod - no Pod with prefix " + serviceName + " was found")
-		return
-	}
+	name = pod.Name
+	internalIP = pod.Status.PodIP
+	namespace = pod.ObjectMeta.Namespace
 
-	internalIP = hubPod.Status.PodIP
-	namespace = hubPod.ObjectMeta.Namespace
-
-	return
+	return name, internalIP, namespace, nil
 }
 
 func getClusterIP(clientSet *kubernetes.Clientset) (clusterIP string, err error) {
@@ -58,5 +56,5 @@ func getClusterIP(clientSet *kubernetes.Clientset) (clusterIP string, err error)
 	}
 
 	clusterIP = service.Spec.ClusterIP
-	return
+	return clusterIP, nil
 }

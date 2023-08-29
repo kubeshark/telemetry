@@ -38,8 +38,8 @@ func Run(startTime time.Time, clientSet *kubernetes.Clientset, serviceName strin
 		return
 	}
 
-	var podInternalIp, podNamespace string
-	podInternalIp, podNamespace, err = getPodInfo(clientSet, serviceName)
+	var podName, podInternalIp, podNamespace string
+	podName, podInternalIp, podNamespace, err = getPodInfo(clientSet, serviceName)
 	if err != nil {
 		return
 	}
@@ -53,11 +53,11 @@ func Run(startTime time.Time, clientSet *kubernetes.Clientset, serviceName strin
 		ClusterIP:     clusterIP,
 		PodIP:         podInternalIp,
 		PodNamespace:  podNamespace,
-		PodName:       "kubeshark-hub",
+		PodName:       podName,
 	}
 
 	err = emitMetrics(stats, serviceName)
-	return
+	return stats, err
 }
 
 func emitMetrics(data *Stats, serviceName string) (err error) {
@@ -98,5 +98,5 @@ func emitMetrics(data *Stats, serviceName string) (err error) {
 		}
 	}
 
-	return
+	return nil
 }
