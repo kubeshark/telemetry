@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -80,7 +81,7 @@ func Run(startTime time.Time, serviceName string) (stats *Stats, err error) {
 		CPU:           cpuUsage,
 		Memory:        memAlloc,
 		MemoryUsage:   memUsage,
-		Hostname:      hostname,
+		Hostname:      strings.TrimSpace(hostname),
 	}
 
 	err = emitMetrics(stats, serviceName)
