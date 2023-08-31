@@ -32,17 +32,17 @@ func Run(startTime time.Time, clientSet *kubernetes.Clientset, serviceName strin
 	memAlloc, memSys := getMemoryUsage()
 	memUsage := float64(memAlloc) / float64(memSys) * 100
 
-	var clusterIP string
-	clusterIP, err = getClusterIP(clientSet)
-	if err != nil {
-		return
-	}
+	// var clusterIP string
+	// clusterIP, err = getClusterIP(clientSet)
+	// if err != nil {
+	// 	return
+	// }
 
-	var podName, podInternalIp, podNamespace string
-	podName, podInternalIp, podNamespace, err = getPodInfo(clientSet, serviceName)
-	if err != nil {
-		return
-	}
+	// var podName, podInternalIp, podNamespace string
+	// podName, podInternalIp, podNamespace, err = getPodInfo(clientSet, serviceName)
+	// if err != nil {
+	// 	return
+	// }
 
 	stats = &Stats{
 		Timestamp:     now,
@@ -50,10 +50,10 @@ func Run(startTime time.Time, clientSet *kubernetes.Clientset, serviceName strin
 		CPU:           cpuUsage,
 		Memory:        memAlloc,
 		MemoryUsage:   memUsage,
-		ClusterIP:     clusterIP,
-		PodIP:         podInternalIp,
-		PodNamespace:  podNamespace,
-		PodName:       podName,
+		// ClusterIP:     clusterIP,
+		// PodIP:         podInternalIp,
+		// PodNamespace:  podNamespace,
+		// PodName:       podName,
 	}
 
 	err = emitMetrics(stats, serviceName)
