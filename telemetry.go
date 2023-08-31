@@ -78,8 +78,8 @@ func Run(startTime time.Time, serviceName string) (stats *Stats, err error) {
 	stats = &Stats{
 		Timestamp:     now,
 		TimeFromStart: now.Sub(startTime),
-		CPU:           cpuUsage,
-		Memory:        memAlloc,
+		CPUUsage:      cpuUsage,
+		MemoryAlloc:   memAlloc,
 		MemoryUsage:   memUsage,
 		Hostname:      strings.TrimSpace(hostname),
 	}
