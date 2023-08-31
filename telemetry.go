@@ -8,8 +8,10 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -26,23 +28,44 @@ func init() {
 	}
 }
 
+const (
+	ENV_TELEMETRY_DISABLED             = "TELEMETRY_DISABLED"
+	ENV_TELEMETRY_INTERVAL_SECONDS     = "TELEMETRY_INTERVAL_SECONDS"
+	DEFAULT_TELEMETRY_INTERVAL_SECONDS = 60
+)
+
+func Start(clientSet *kubernetes.Clientset, serviceName string) {
+	telemetryDisabled := os.Getenv(ENV_TELEMETRY_DISABLED)
+	log.Debug().Str(ENV_TELEMETRY_DISABLED, telemetryDisabled).Msg("Environment variable:")
+
+	if telemetryDisabled == "true" {
+		return
+	}
+
+	telemetryIntervalSecondsEnv := os.Getenv(ENV_TELEMETRY_INTERVAL_SECONDS)
+	log.Debug().Str(ENV_TELEMETRY_INTERVAL_SECONDS, telemetryIntervalSecondsEnv).Msg("Environment variable:")
+	telemetryIntervalSeconds, err := strconv.Atoi(telemetryIntervalSecondsEnv)
+	if err != nil {
+		telemetryIntervalSeconds = DEFAULT_TELEMETRY_INTERVAL_SECONDS
+	}
+
+	startTime := time.Now()
+
+	for range time.Tick(time.Second * time.Duration(telemetryIntervalSeconds)) {
+		stats, err := Run(startTime, clientSet, serviceName)
+		if err != nil {
+			log.Warn().Err(err).Msg("Telemetry")
+		} else {
+			log.Debug().Interface("stats", stats).Msg("Telemetry")
+		}
+	}
+}
+
 func Run(startTime time.Time, clientSet *kubernetes.Clientset, serviceName string) (stats *Stats, err error) {
 	now := time.Now()
 	cpuUsage := getCPUUsage()
 	memAlloc, memSys := getMemoryUsage()
 	memUsage := float64(memAlloc) / float64(memSys) * 100
-
-	// var clusterIP string
-	// clusterIP, err = getClusterIP(clientSet)
-	// if err != nil {
-	// 	return
-	// }
-
-	// var podName, podInternalIp, podNamespace string
-	// podName, podInternalIp, podNamespace, err = getPodInfo(clientSet, serviceName)
-	// if err != nil {
-	// 	return
-	// }
 
 	stats = &Stats{
 		Timestamp:     now,
@@ -50,10 +73,6 @@ func Run(startTime time.Time, clientSet *kubernetes.Clientset, serviceName strin
 		CPU:           cpuUsage,
 		Memory:        memAlloc,
 		MemoryUsage:   memUsage,
-		// ClusterIP:     clusterIP,
-		// PodIP:         podInternalIp,
-		// PodNamespace:  podNamespace,
-		// PodName:       podName,
 	}
 
 	err = emitMetrics(stats, serviceName)

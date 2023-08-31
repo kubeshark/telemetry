@@ -8,9 +8,4 @@ type Stats struct {
 	CPU           float64
 	Memory        uint64
 	MemoryUsage   float64
-	ClusterIP     string
-	PodIP         string
-	PodNamespace  string
-	PodName       string
-	NodeID        string
 }
