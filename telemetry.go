@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"k8s.io/client-go/kubernetes"
 )
 
 var cloudApiURL = "https://api.kubeshark.co"
@@ -34,7 +33,7 @@ const (
 	DEFAULT_TELEMETRY_INTERVAL_SECONDS = 60
 )
 
-func Start(clientSet *kubernetes.Clientset, serviceName string) {
+func Start(serviceName string) {
 	telemetryDisabled := os.Getenv(ENV_TELEMETRY_DISABLED)
 	log.Debug().Str(ENV_TELEMETRY_DISABLED, telemetryDisabled).Msg("Environment variable:")
 
@@ -51,8 +50,10 @@ func Start(clientSet *kubernetes.Clientset, serviceName string) {
 
 	startTime := time.Now()
 
-	for range time.Tick(time.Second * time.Duration(telemetryIntervalSeconds)) {
-		stats, err := Run(startTime, clientSet, serviceName)
+	ticker := time.NewTicker(time.Second * time.Duration(telemetryIntervalSeconds))
+	defer ticker.Stop()
+	for range ticker.C {
+		stats, err := Run(startTime, serviceName)
 		if err != nil {
 			log.Warn().Err(err).Msg("Telemetry")
 		} else {
@@ -61,7 +62,7 @@ func Start(clientSet *kubernetes.Clientset, serviceName string) {
 	}
 }
 
-func Run(startTime time.Time, clientSet *kubernetes.Clientset, serviceName string) (stats *Stats, err error) {
+func Run(startTime time.Time, serviceName string) (stats *Stats, err error) {
 	now := time.Now()
 	cpuUsage := getCPUUsage()
 	memAlloc, memSys := getMemoryUsage()
