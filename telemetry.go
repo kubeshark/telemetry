@@ -63,17 +63,24 @@ func Start(serviceName string) {
 }
 
 func Run(startTime time.Time, serviceName string) (stats *Stats, err error) {
-	now := time.Now()
+	var hostname string
+	hostname, err = getHostname()
+	if err != nil {
+		return
+	}
+
 	cpuUsage := getCPUUsage()
 	memAlloc, memSys := getMemoryUsage()
 	memUsage := float64(memAlloc) / float64(memSys) * 100
 
+	now := time.Now()
 	stats = &Stats{
 		Timestamp:     now,
 		TimeFromStart: now.Sub(startTime),
 		CPU:           cpuUsage,
 		Memory:        memAlloc,
 		MemoryUsage:   memUsage,
+		Hostname:      hostname,
 	}
 
 	err = emitMetrics(stats, serviceName)

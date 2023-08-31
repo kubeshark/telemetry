@@ -8,4 +8,5 @@ type Stats struct {
 	CPU           float64
 	Memory        uint64
 	MemoryUsage   float64
+	Hostname      string
 }
