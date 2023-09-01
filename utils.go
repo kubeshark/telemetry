@@ -18,7 +18,7 @@ func getCPUUsage() float64 {
 	return sysInfo.CPU
 }
 
-func getCPU() float64 {
+func getCPUNum() float64 {
 	return float64(runtime.NumCPU())
 }
 
