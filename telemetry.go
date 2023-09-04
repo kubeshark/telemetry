@@ -71,6 +71,7 @@ func Run(startTime time.Time, serviceName string) (stats *Stats, err error) {
 	}
 
 	cpuUsage := getCPUUsage()
+	cpuNum := getCPUNum()
 	memAlloc, memSys := getMemoryUsage()
 	memUsage := float64(memAlloc) / float64(memSys) * 100
 
@@ -79,6 +80,7 @@ func Run(startTime time.Time, serviceName string) (stats *Stats, err error) {
 		Timestamp:     now,
 		TimeFromStart: now.Sub(startTime),
 		CPUUsage:      cpuUsage,
+		CPUNum:        cpuNum,
 		MemoryAlloc:   memAlloc,
 		MemoryUsage:   memUsage,
 		Hostname:      strings.TrimSpace(hostname),

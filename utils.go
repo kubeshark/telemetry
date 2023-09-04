@@ -1,11 +1,24 @@
 package telemetry
 
 import (
+	"github.com/struCoder/pidusage"
 	"os"
 	"runtime"
 )
 
 func getCPUUsage() float64 {
+	sysInfo, err := pidusage.GetStat(os.Getpid())
+	if err != nil {
+		sysInfo = &pidusage.SysInfo{
+			CPU:    -1,
+			Memory: -1,
+		}
+	}
+
+	return sysInfo.CPU
+}
+
+func getCPUNum() float64 {
 	return float64(runtime.NumCPU())
 }
 
