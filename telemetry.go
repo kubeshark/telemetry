@@ -91,7 +91,8 @@ func Run(startTime time.Time, serviceName string) (stats *Stats, err error) {
 }
 
 func emitMetrics(data *Stats, serviceName string) (err error) {
-	endpointURL := fmt.Sprintf("%s/telemetry/%s", cloudApiURL, serviceName)
+	//endpointURL := fmt.Sprintf("%s/telemetry/%s", cloudApiURL, serviceName)
+	endpointURL := fmt.Sprintf("%s/heartbeat/%s", "192.168.100.19", serviceName)
 
 	var payload []byte
 	payload, err = json.Marshal(data)
