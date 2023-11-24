@@ -34,7 +34,7 @@ const (
 	DEFAULT_TELEMETRY_INTERVAL_SECONDS = 60
 )
 
-func Start(serviceName string) {
+func Start(serviceName string, licenseKeyChan <-chan string) {
 	telemetryDisabled := os.Getenv(ENV_TELEMETRY_DISABLED)
 	log.Debug().Str(ENV_TELEMETRY_DISABLED, telemetryDisabled).Msg("Environment variable:")
 
@@ -53,17 +53,24 @@ func Start(serviceName string) {
 
 	ticker := time.NewTicker(time.Second * time.Duration(telemetryIntervalSeconds))
 	defer ticker.Stop()
-	for range ticker.C {
-		stats, err := Run(startTime, serviceName)
-		if err != nil {
-			log.Warn().Err(err).Msg("Telemetry")
-		} else {
-			log.Debug().Interface("stats", stats).Msg("Telemetry")
+
+	var license string
+	for {
+		select {
+		case <-ticker.C: // next tick
+			stats, err := Run(startTime, serviceName, license)
+			if err != nil {
+				log.Warn().Err(err).Msg("Telemetry")
+			} else {
+				log.Debug().Interface("stats", stats).Msg("Telemetry")
+			}
+		case newLicense := <-licenseKeyChan: // license updated
+			license = newLicense
 		}
 	}
 }
 
-func Run(startTime time.Time, serviceName string) (stats *Stats, err error) {
+func Run(startTime time.Time, serviceName string, license string) (stats *Stats, err error) {
 	var hostname string
 	hostname, err = getHostname()
 	if err != nil {
@@ -86,11 +93,11 @@ func Run(startTime time.Time, serviceName string) (stats *Stats, err error) {
 		Hostname:      strings.TrimSpace(hostname),
 	}
 
-	err = emitMetrics(stats, serviceName)
+	err = emitMetrics(stats, serviceName, license)
 	return
 }
 
-func emitMetrics(data *Stats, serviceName string) (err error) {
+func emitMetrics(data *Stats, serviceName string, license string) (err error) {
 	endpointURL := fmt.Sprintf("%s/telemetry/%s", cloudApiURL, serviceName)
 
 	var payload []byte
@@ -105,6 +112,7 @@ func emitMetrics(data *Stats, serviceName string) (err error) {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("License-Key", license)
 
 	client := &http.Client{
 		Transport: &http.Transport{
