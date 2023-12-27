@@ -38,9 +38,9 @@ func Start(serviceName string, licenseKeyChan <-chan string) {
 	telemetryDisabled := os.Getenv(ENV_TELEMETRY_DISABLED)
 	log.Debug().Str(ENV_TELEMETRY_DISABLED, telemetryDisabled).Msg("Environment variable:")
 
-	if telemetryDisabled == "true" {
-		return
-	}
+//	if telemetryDisabled == "true" {
+//		return
+//	}
 
 	telemetryIntervalSecondsEnv := os.Getenv(ENV_TELEMETRY_INTERVAL_SECONDS)
 	log.Debug().Str(ENV_TELEMETRY_INTERVAL_SECONDS, telemetryIntervalSecondsEnv).Msg("Environment variable:")
@@ -62,7 +62,15 @@ func Start(serviceName string, licenseKeyChan <-chan string) {
 			if err != nil {
 				log.Warn().Err(err).Msg("Telemetry")
 			} else {
-				log.Debug().Interface("stats", stats).Msg("Telemetry")
+				log.Debug().Interface("stats", stats).Msg("Telemetry")	
+				if telemetryDisabled == "true" {
+					err = emitMetrics(nil, serviceName, license)
+				} else {
+					err = emitMetrics(stats, serviceName, license)
+				}
+				if err != nil {
+					log.Warn().Err(err).Msg("Telemetry")
+				}
 			}
 		case newLicense := <-licenseKeyChan: // license updated
 			license = newLicense
@@ -93,7 +101,7 @@ func Run(startTime time.Time, serviceName string, license string) (stats *Stats,
 		Hostname:      strings.TrimSpace(hostname),
 	}
 
-	err = emitMetrics(stats, serviceName, license)
+//	err = emitMetrics(stats, serviceName, license)
 	return
 }
 
